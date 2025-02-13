@@ -54,19 +54,13 @@
   </head>
   <body>
     <div class="container">
-      <h2>Form Upload Foto ini</h2>
+      <h2>Form Upload Foto baru</h2>
       <form id="uploadForm">
         <label for="keterangan">Keterangan:</label>
         <input type="text" name="keterangan" id="keterangan" required /><br />
 
         <label for="foto">Pilih Foto:</label>
         <input type="file" name="foto" id="foto" accept="image/*" required /><br />
-
-        <label for="latitude">Latitude:</label>
-        <input type="text" name="latitude" id="latitude" readonly /><br />
-
-        <label for="longitude">Longitude:</label>
-        <input type="text" name="longitude" id="longitude" readonly /><br />
 
         <label for="alamat">Alamat:</label>
         <input type="text" name="alamat" id="alamat" readonly /><br />
@@ -80,57 +74,22 @@
         const file = event.target.files[0]
         if (file) {
           const reader = new FileReader()
-          reader.onload = function () {
-            const image = new Image()
-            image.src = reader.result
-            image.onload = function () {
-              EXIF.getData(image, function () {
+          reader.onload = function (e) {
+            const img = new Image()
+            img.src = e.target.result
+            img.onload = function () {
+              EXIF.getData(img, function () {
                 console.log(EXIF.getAllTags(this)) // Debugging untuk melihat semua metadata
 
-                let lat = EXIF.getTag(this, "GPSLatitude")
-                let lon = EXIF.getTag(this, "GPSLongitude")
-                let latRef = EXIF.getTag(this, "GPSLatitudeRef")
-                let lonRef = EXIF.getTag(this, "GPSLongitudeRef")
+                let alamat = EXIF.getTag(this, "ImageDescription") || EXIF.getTag(this, "UserComment") || "Alamat tidak ditemukan dalam metadata."
 
-                if (lat && lon) {
-                  let latitude = convertDMSToDD(lat, latRef)
-                  let longitude = convertDMSToDD(lon, lonRef)
-
-                  document.getElementById("latitude").value = latitude
-                  document.getElementById("longitude").value = longitude
-
-                  getAddress(latitude, longitude)
-                } else {
-                  alert("Metadata GPS tidak ditemukan! Pastikan GPS aktif saat mengambil gambar.")
-                }
+                document.getElementById("alamat").value = alamat
               })
             }
           }
           reader.readAsDataURL(file)
         }
       })
-
-      function convertDMSToDD(dms, direction) {
-        if (!dms || dms.length !== 3) return null
-        let dd = dms[0] + dms[1] / 60 + dms[2] / 3600
-        if (direction === "S" || direction === "W") {
-          dd = dd * -1
-        }
-        return dd
-      }
-
-      function getAddress(latitude, longitude) {
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
-          .then((response) => response.json())
-          .then((data) => {
-            if (data && data.display_name) {
-              document.getElementById("alamat").value = data.display_name
-            } else {
-              document.getElementById("alamat").value = "Alamat tidak ditemukan"
-            }
-          })
-          .catch((error) => console.error("Error mendapatkan alamat:", error))
-      }
     </script>
   </body>
 </html>
