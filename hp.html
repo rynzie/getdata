@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Form Upload Foto dengan Lokasi</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+      .container {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        width: 400px;
+      }
+      h2 {
+        text-align: center;
+        color: #333;
+      }
+      label {
+        font-weight: bold;
+      }
+      input[type="text"],
+      input[type="file"] {
+        width: 100%;
+        padding: 8px;
+        margin: 5px 0 15px 0;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #218838;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Form Upload Foto</h2>
+      <form id="uploadForm">
+        <label for="keterangan">Keterangan:</label>
+        <input type="text" name="keterangan" id="keterangan" required /><br />
+
+        <label for="foto">Pilih Foto:</label>
+        <input type="file" name="foto" id="foto" accept="image/*" required /><br />
+
+        <label for="latitude">Latitude:</label>
+        <input type="text" name="latitude" id="latitude" readonly /><br />
+
+        <label for="longitude">Longitude:</label>
+        <input type="text" name="longitude" id="longitude" readonly /><br />
+
+        <label for="alamat">Alamat:</label>
+        <input type="text" name="alamat" id="alamat" readonly /><br />
+
+        <button type="submit">Upload</button>
+      </form>
+    </div>
+
+    <script>
+      document.getElementById("foto").addEventListener("change", function (event) {
+        const file = event.target.files[0]
+        if (file) {
+          const reader = new FileReader()
+          reader.onload = function () {
+            const image = new Image()
+            image.src = reader.result
+            image.onload = function () {
+              EXIF.getData(image, function () {
+                let lat = EXIF.getTag(this, "GPSLatitude")
+                let lon = EXIF.getTag(this, "GPSLongitude")
+                let latRef = EXIF.getTag(this, "GPSLatitudeRef")
+                let lonRef = EXIF.getTag(this, "GPSLongitudeRef")
+
+                if (lat && lon) {
+                  let latitude = (lat[0] + lat[1] / 60 + lat[2] / 3600) * (latRef === "S" ? -1 : 1)
+                  let longitude = (lon[0] + lon[1] / 60 + lon[2] / 3600) * (lonRef === "W" ? -1 : 1)
+
+                  document.getElementById("latitude").value = latitude
+                  document.getElementById("longitude").value = longitude
+
+                  fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+                    .then((response) => response.json())
+                    .then((data) => {
+                      document.getElementById("alamat").value = data.display_name
+                    })
+                    .catch((error) => console.error("Error mendapatkan alamat:", error))
+                } else {
+                  alert("Lokasi tidak ditemukan dalam metadata foto. Pastikan GPS aktif saat mengambil gambar.")
+                }
+              })
+            }
+          }
+          reader.readAsDataURL(file)
+        }
+      })
+    </script>
+  </body>
+</html>
