@@ -37,7 +37,7 @@
   </head>
   <body>
     <div class="container">
-      <h2>Upload Foto dengan Lokasi baru</h2>
+      <h2>Upload Foto dengan Lokasi ini</h2>
       <input type="file" id="foto" accept="image/*" />
       <img id="preview" style="display: none" />
       <p><strong>Alamat:</strong> <span id="alamat">Menunggu data...</span></p>
@@ -60,15 +60,17 @@
             let latRef = EXIF.getTag(this, "GPSLatitudeRef")
             let lonRef = EXIF.getTag(this, "GPSLongitudeRef")
             let imageDesc = EXIF.getTag(this, "ImageDescription")
+            let userComment = EXIF.getTag(this, "UserComment")
+            let locationMetadata = imageDesc || userComment // Coba baca info lokasi dari metadata
 
             if (lat && lon) {
               let latitude = convertDMSToDD(lat, latRef)
               let longitude = convertDMSToDD(lon, lonRef)
               getAddress(latitude, longitude)
-            } else if (imageDesc) {
-              document.getElementById("alamat").innerText = `Info Foto: ${imageDesc}`
+            } else if (locationMetadata) {
+              document.getElementById("alamat").innerText = `Lokasi: ${locationMetadata}`
             } else {
-              document.getElementById("alamat").innerText = "Lokasi tidak tersedia dalam metadata. Pastikan GPS aktif saat mengambil foto."
+              document.getElementById("alamat").innerText = "Lokasi tidak ditemukan dalam metadata."
             }
           })
         }
