@@ -54,7 +54,7 @@
   </head>
   <body>
     <div class="container">
-      <h2>Form Upload Foto</h2>
+      <h2>Form Upload Foto rev</h2>
       <form id="uploadForm">
         <label for="keterangan">Keterangan:</label>
         <input type="text" name="keterangan" id="keterangan" required /><br />
@@ -85,26 +85,25 @@
             image.src = reader.result
             image.onload = function () {
               EXIF.getData(image, function () {
+                console.log(EXIF.getAllTags(this)) // Cek semua metadata
+
                 let lat = EXIF.getTag(this, "GPSLatitude")
                 let lon = EXIF.getTag(this, "GPSLongitude")
                 let latRef = EXIF.getTag(this, "GPSLatitudeRef")
                 let lonRef = EXIF.getTag(this, "GPSLongitudeRef")
 
+                console.log(lat, lon, latRef, lonRef)
+
                 if (lat && lon) {
-                  let latitude = (lat[0] + lat[1] / 60 + lat[2] / 3600) * (latRef === "S" ? -1 : 1)
-                  let longitude = (lon[0] + lon[1] / 60 + lon[2] / 3600) * (lonRef === "W" ? -1 : 1)
+                  let latitude = convertDMSToDD(lat, latRef)
+                  let longitude = convertDMSToDD(lon, lonRef)
 
                   document.getElementById("latitude").value = latitude
                   document.getElementById("longitude").value = longitude
 
-                  fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
-                    .then((response) => response.json())
-                    .then((data) => {
-                      document.getElementById("alamat").value = data.display_name
-                    })
-                    .catch((error) => console.error("Error mendapatkan alamat:", error))
+                  getAddress(latitude, longitude)
                 } else {
-                  alert("Lokasi tidak ditemukan dalam metadata foto. Pastikan GPS aktif saat mengambil gambar.")
+                  alert("Metadata GPS tidak ditemukan! Pastikan GPS aktif saat mengambil gambar.")
                 }
               })
             }
@@ -112,6 +111,23 @@
           reader.readAsDataURL(file)
         }
       })
+
+      function convertDMSToDD(dms, direction) {
+        let dd = dms[0] + dms[1] / 60 + dms[2] / 3600
+        if (direction === "S" || direction === "W") {
+          dd = dd * -1
+        }
+        return dd
+      }
+
+      function getAddress(latitude, longitude) {
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+          .then((response) => response.json())
+          .then((data) => {
+            document.getElementById("alamat").value = data.display_name
+          })
+          .catch((error) => console.error("Error mendapatkan alamat:", error))
+      }
     </script>
   </body>
 </html>
