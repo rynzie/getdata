@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Form Upload Foto dengan Lokasi</title>
+    <title>Upload Foto & Ambil Lokasi</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.js"></script>
     <style>
       body {
@@ -37,10 +37,11 @@
   </head>
   <body>
     <div class="container">
-      <h2>Upload Foto dengan Lokasi final</h2>
+      <h2>Upload Foto dengan Lokasi rex</h2>
       <input type="file" id="foto" accept="image/*" />
       <img id="preview" style="display: none" />
       <p><strong>Alamat:</strong> <span id="alamat">Menunggu data...</span></p>
+      <p><strong>Koordinat:</strong> <span id="koordinat">-</span></p>
     </div>
 
     <script>
@@ -61,15 +62,17 @@
             let lonRef = EXIF.getTag(this, "GPSLongitudeRef")
             let imageDesc = EXIF.getTag(this, "ImageDescription")
             let userComment = EXIF.getTag(this, "UserComment")
+            let locationMetadata = imageDesc || userComment
 
             if (lat && lon) {
               let latitude = convertDMSToDD(lat, latRef)
               let longitude = convertDMSToDD(lon, lonRef)
+              document.getElementById("koordinat").innerText = `${latitude}, ${longitude}`
               getAddress(latitude, longitude)
-            } else if (imageDesc || userComment) {
-              document.getElementById("alamat").innerText = `Lokasi: ${imageDesc || userComment}`
+            } else if (locationMetadata) {
+              document.getElementById("alamat").innerText = `Info Foto: ${locationMetadata}`
             } else {
-              document.getElementById("alamat").innerText = "Lokasi tidak tersedia dalam metadata. Pastikan GPS aktif saat mengambil foto."
+              document.getElementById("alamat").innerText = "Lokasi tidak ditemukan dalam metadata."
             }
           })
         }
