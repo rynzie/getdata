@@ -9,8 +9,6 @@
       body {
         font-family: Arial, sans-serif;
         background-color: #f4f4f4;
-        margin: 0;
-        padding: 0;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -22,51 +20,27 @@
         border-radius: 10px;
         box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
         width: 400px;
-      }
-      h2 {
         text-align: center;
-        color: #333;
       }
-      label {
-        font-weight: bold;
-      }
-      input[type="text"],
-      input[type="file"] {
-        width: 100%;
-        padding: 8px;
-        margin: 5px 0 15px 0;
-        border: 1px solid #ccc;
+      img {
+        max-width: 100%;
+        margin-top: 10px;
         border-radius: 5px;
       }
+      input,
       button {
         width: 100%;
         padding: 10px;
-        background: #28a745;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-      }
-      button:hover {
-        background: #218838;
+        margin-top: 10px;
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <h2>Form Upload Foto baru</h2>
-      <form id="uploadForm">
-        <label for="keterangan">Keterangan:</label>
-        <input type="text" name="keterangan" id="keterangan" required /><br />
-
-        <label for="foto">Pilih Foto:</label>
-        <input type="file" name="foto" id="foto" accept="image/*" required /><br />
-
-        <label for="alamat">Alamat:</label>
-        <input type="text" name="alamat" id="alamat" readonly /><br />
-
-        <button type="submit">Upload</button>
-      </form>
+      <h2>Upload Foto dengan Lokasi</h2>
+      <input type="file" id="foto" accept="image/*" />
+      <img id="preview" style="display: none" />
+      <p><strong>Alamat:</strong> <span id="alamat">Menunggu data...</span></p>
     </div>
 
     <script>
@@ -75,21 +49,52 @@
         if (file) {
           const reader = new FileReader()
           reader.onload = function (e) {
-            const img = new Image()
-            img.src = e.target.result
-            img.onload = function () {
-              EXIF.getData(img, function () {
-                console.log(EXIF.getAllTags(this)) // Debugging untuk melihat semua metadata
-
-                let alamat = EXIF.getTag(this, "ImageDescription") || EXIF.getTag(this, "UserComment") || "Alamat tidak ditemukan dalam metadata."
-
-                document.getElementById("alamat").value = alamat
-              })
-            }
+            document.getElementById("preview").src = e.target.result
+            document.getElementById("preview").style.display = "block"
           }
           reader.readAsDataURL(file)
+
+          EXIF.getData(file, function () {
+            let lat = EXIF.getTag(this, "GPSLatitude")
+            let lon = EXIF.getTag(this, "GPSLongitude")
+            let latRef = EXIF.getTag(this, "GPSLatitudeRef")
+            let lonRef = EXIF.getTag(this, "GPSLongitudeRef")
+
+            if (lat && lon) {
+              let latitude = convertDMSToDD(lat, latRef)
+              let longitude = convertDMSToDD(lon, lonRef)
+              getAddress(latitude, longitude)
+            } else {
+              document.getElementById("alamat").innerText = "Lokasi tidak tersedia dalam metadata."
+            }
+          })
         }
       })
+
+      function convertDMSToDD(dms, direction) {
+        if (!dms || dms.length !== 3) return null
+        let dd = dms[0] + dms[1] / 60 + dms[2] / 3600
+        if (direction === "S" || direction === "W") {
+          dd = dd * -1
+        }
+        return dd
+      }
+
+      function getAddress(latitude, longitude) {
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (data && data.display_name) {
+              document.getElementById("alamat").innerText = data.display_name
+            } else {
+              document.getElementById("alamat").innerText = "Alamat tidak ditemukan."
+            }
+          })
+          .catch((error) => {
+            console.error("Error mendapatkan alamat:", error)
+            document.getElementById("alamat").innerText = "Gagal mengambil data alamat."
+          })
+      }
     </script>
   </body>
 </html>
