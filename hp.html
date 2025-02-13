@@ -54,7 +54,7 @@
   </head>
   <body>
     <div class="container">
-      <h2>Form Upload Foto rev</h2>
+      <h2>Form Upload Foto terbaru</h2>
       <form id="uploadForm">
         <label for="keterangan">Keterangan:</label>
         <input type="text" name="keterangan" id="keterangan" required /><br />
@@ -85,14 +85,12 @@
             image.src = reader.result
             image.onload = function () {
               EXIF.getData(image, function () {
-                console.log(EXIF.getAllTags(this)) // Cek semua metadata
+                console.log(EXIF.getAllTags(this)) // Debugging untuk melihat semua metadata
 
                 let lat = EXIF.getTag(this, "GPSLatitude")
                 let lon = EXIF.getTag(this, "GPSLongitude")
                 let latRef = EXIF.getTag(this, "GPSLatitudeRef")
                 let lonRef = EXIF.getTag(this, "GPSLongitudeRef")
-
-                console.log(lat, lon, latRef, lonRef)
 
                 if (lat && lon) {
                   let latitude = convertDMSToDD(lat, latRef)
@@ -113,6 +111,7 @@
       })
 
       function convertDMSToDD(dms, direction) {
+        if (!dms || dms.length !== 3) return null
         let dd = dms[0] + dms[1] / 60 + dms[2] / 3600
         if (direction === "S" || direction === "W") {
           dd = dd * -1
@@ -124,7 +123,11 @@
         fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
           .then((response) => response.json())
           .then((data) => {
-            document.getElementById("alamat").value = data.display_name
+            if (data && data.display_name) {
+              document.getElementById("alamat").value = data.display_name
+            } else {
+              document.getElementById("alamat").value = "Alamat tidak ditemukan"
+            }
           })
           .catch((error) => console.error("Error mendapatkan alamat:", error))
       }
